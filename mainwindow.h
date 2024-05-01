@@ -28,6 +28,7 @@ private:
     QPushButton *hintButton;
     QPushButton *undoButton;
     QPushButton *eraseButton;
+    QPushButton *takeNoteButton;
 
     QList<QList<Cell*>> boxes;
 

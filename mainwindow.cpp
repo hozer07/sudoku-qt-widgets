@@ -25,11 +25,7 @@ void MainWindow::createBoxesGrid(void)
     for (size_t row = 0; row < 9; row++) {
         boxes.append(QList<Cell*>{});
         for (size_t column = 0; column < 9; column++) {
-            auto cell = new Cell{};
-            cell->setText(tr("sa"));
-            cell->setFrameStyle(QFrame::Box);
-            cell->setLineWidth(1);
-            cell->setMinimumSize(40,40);
+            auto cell = new Cell(row, column);
             boxes[row].append(cell);
             boxesLayout->addWidget(cell, row, column);
         }
@@ -46,17 +42,20 @@ void MainWindow::createMenuButtons(void)
     hintButton = new QPushButton("Hint");
     undoButton = new QPushButton("Undo");
     eraseButton = new QPushButton("Erase");
+    takeNoteButton = new QPushButton("Note");
 
     menuButtonsLayout->addWidget(newGameButton);
     menuButtonsLayout->addWidget(hintButton);
     menuButtonsLayout->addWidget(undoButton);
     menuButtonsLayout->addWidget(eraseButton);
+    menuButtonsLayout->addWidget(takeNoteButton);
     menuButtonsGroup->setFixedWidth(180);
 
     newGameButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     hintButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     undoButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     eraseButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    takeNoteButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }

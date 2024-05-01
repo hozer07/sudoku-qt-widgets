@@ -7,7 +7,7 @@
 class Cell : public QLabel
 {
 public:
-    Cell();
+    explicit Cell(uint8_t row, uint8_t column);
 
 protected:
     void enterEvent(QEnterEvent* event) override;
