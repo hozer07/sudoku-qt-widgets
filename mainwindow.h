@@ -8,8 +8,9 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QList>
-#include "cell.h"
+#include <utility>
 
+class Cell;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -17,6 +18,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+public slots:
+    void cleanAndHighlightRowAndColumn(std::pair<uint8_t, uint8_t>);
 private:
     QGroupBox *boxesGroup;
     QGridLayout *boxesLayout;
@@ -34,5 +38,7 @@ private:
 
     void createBoxesGrid(void);
     void createMenuButtons(void);
+    std::pair<uint8_t, uint8_t> focusedCell{255,255};
+
 };
 #endif // MAINWINDOW_H
