@@ -15,10 +15,11 @@ public:
     void setFocus(void);
     void resetFocus(void);
     bool isSelected() const;
-    coordinateType getCoordinates(void);
+    coordinateType getCoordinates(void) const;
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 private:
     bool isFocused;
     coordinateType m_coordinates;

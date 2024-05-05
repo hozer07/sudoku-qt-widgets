@@ -1,5 +1,6 @@
 #include "cell.h"
 #include <QObject>
+#include <QString>
 
 Cell::Cell(uint8_t row, uint8_t column) :
     m_coordinates({row,column })
@@ -36,6 +37,7 @@ Cell::Cell(uint8_t row, uint8_t column) :
 
     setStyleSheet(styleOfThisCell);
     setMinimumSize(40,40);
+    setFocusPolicy(Qt::StrongFocus);
 }
 
 void Cell::mousePressEvent(QMouseEvent *event){
@@ -57,7 +59,21 @@ bool Cell::isSelected() const
     return isFocused;
 }
 
-Cell::coordinateType Cell::getCoordinates(void)
+Cell::coordinateType Cell::getCoordinates(void) const
 {
     return m_coordinates;
+}
+
+void Cell::keyPressEvent(QKeyEvent *event)
+{
+    auto keyValue = event->key();
+    if(keyValue >= Qt::Key_1 || keyValue <= Qt::Key_9)
+    {
+        QFont font;
+        font.setPointSize(20);  // Set font size to 20
+        font.setBold(true);
+        setFont(font);
+        setText(QString::number(keyValue - Qt::Key_0));
+        setAlignment(Qt::AlignHCenter);
+    }
 }
