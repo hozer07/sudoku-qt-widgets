@@ -1,9 +1,11 @@
 #include "cell.h"
 #include <QObject>
 #include <QString>
+#include "mainwindow.h"
 
-Cell::Cell(uint8_t row, uint8_t column) :
-    m_coordinates({row,column })
+Cell::Cell(uint8_t row, uint8_t column, MainWindow * mainWindow) :
+    m_coordinates({row,column }),
+    mainWindow(mainWindow)
 {
     QString styleOfThisCell{};
 
@@ -36,7 +38,7 @@ Cell::Cell(uint8_t row, uint8_t column) :
     }
 
     setStyleSheet(styleOfThisCell);
-    setMinimumSize(40,40);
+    setMinimumSize(45,45);
     setFocusPolicy(Qt::StrongFocus);
 }
 
@@ -44,36 +46,56 @@ void Cell::mousePressEvent(QMouseEvent *event){
     emit cellFocused(m_coordinates);
 }
 
-void Cell::setFocus()
+void Cell::setIsFocused()
 {
     isFocused = true;
 }
 
-void Cell::resetFocus()
+void Cell::resetIsFocused()
 {
     isFocused = false;
 }
 
-bool Cell::isSelected() const
+void Cell::toggleMarked()
 {
-    return isFocused;
+    cellMarked ^= 1;
 }
 
-Cell::coordinateType Cell::getCoordinates(void) const
+void setCellValue(Cell* cell, uint8_t keyValue)
 {
-    return m_coordinates;
+    if(cell->hasValue() && keyValue == cell->value())
+    {
+        cell->setText(QString{});
+    }
+    else{
+        QFont font;
+        font.setPointSize(25);  // Set font size to 25
+        font.setBold(true);
+        cell->setFont(font);
+        cell->setText(QString::number(keyValue - Qt::Key_0));
+        cell->setAlignment(Qt::AlignHCenter);
+        cell->setValue(keyValue);
+    }
+
+    cell->toggleMarked();
+}
+
+void takeNoteOnCell(Cell* cell, uint8_t keyValue)
+{
+
 }
 
 void Cell::keyPressEvent(QKeyEvent *event)
 {
     auto keyValue = event->key();
-    if(keyValue >= Qt::Key_1 || keyValue <= Qt::Key_9)
+    if( keyValue >= Qt::Key_1 && keyValue <= Qt::Key_9)
     {
-        QFont font;
-        font.setPointSize(20);  // Set font size to 20
-        font.setBold(true);
-        setFont(font);
-        setText(QString::number(keyValue - Qt::Key_0));
-        setAlignment(Qt::AlignHCenter);
+        if(false == mainWindow->isTakingNote())
+        {
+            setCellValue(this, keyValue);
+        }
+        else{
+            takeNoteOnCell(this, keyValue);
+        }
     }
 }

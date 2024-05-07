@@ -7,20 +7,24 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QStackedWidget>
 #include <QList>
 #include <utility>
 
-class Cell;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
+    using coordinateType = std::pair<uint8_t, uint8_t>;
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    bool isTakingNote(void) const{return m_takingNote;}
+    coordinateType getFocusedCellCoordinate(void) const {return focusedCell;}
+    void keepCellFocus(coordinateType);
 
 public slots:
-    void cleanAndHighlightRowAndColumn(std::pair<uint8_t, uint8_t>);
+    void cleanAndHighlightRowAndColumn(coordinateType);
 private:
     QGroupBox *boxesGroup;
     QGridLayout *boxesLayout;
@@ -34,11 +38,15 @@ private:
     QPushButton *eraseButton;
     QPushButton *takeNoteButton;
 
-    QList<QList<Cell*>> boxes;
+    QList<QList<QStackedWidget*>> boxes;
+    coordinateType focusedCell{255,255};
+    bool m_takingNote{false};
 
     void createBoxesGrid(void);
     void createMenuButtons(void);
-    std::pair<uint8_t, uint8_t> focusedCell{255,255};
+
+private slots:
+    void takeNoteHandler(void);
 
 };
 #endif // MAINWINDOW_H
