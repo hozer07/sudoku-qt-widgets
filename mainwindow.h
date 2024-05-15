@@ -7,10 +7,10 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QLabel>
-#include <QStackedWidget>
 #include <QList>
 #include <utility>
 
+class Box;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -22,6 +22,7 @@ public:
     bool isTakingNote(void) const{return m_takingNote;}
     coordinateType getFocusedCellCoordinate(void) const {return focusedCell;}
     void keepCellFocus(coordinateType);
+    Box * getBox(const coordinateType coord) const {return boxes[coord.first][coord.second];}
 
 public slots:
     void cleanAndHighlightRowAndColumn(coordinateType);
@@ -38,7 +39,7 @@ private:
     QPushButton *eraseButton;
     QPushButton *takeNoteButton;
 
-    QList<QList<QStackedWidget*>> boxes;
+    QList<QList<Box*>> boxes;
     coordinateType focusedCell{255,255};
     bool m_takingNote{false};
 
