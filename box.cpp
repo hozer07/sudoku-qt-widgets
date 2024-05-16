@@ -47,6 +47,31 @@ void Box::keyPressEvent(QKeyEvent *event)
             notesTaken.push({row,column});
         }
     }
+    else if( keyValue >= Qt::Key_Left && keyValue <= Qt::Key_Down)
+    {
+        auto [row, column] = cell->getCoordinates();
+        if( keyValue == Qt::Key_Left && column > 0 )
+        {
+            column--;
+        }
+        else if( keyValue == Qt::Key_Right && column < 8 )
+        {
+            column++;
+        }
+        else if( keyValue == Qt::Key_Up && row > 0 )
+        {
+            row--;
+        }
+        else if( keyValue == Qt::Key_Down && row < 8 )
+        {
+            row++;
+        }
+        auto next_box = getMainWindow()->getBox({row,column});
+        this->clearFocus();
+        next_box->setFocus(Qt::MouseFocusReason);
+        auto next_cell = qobject_cast<Cell*>(next_box->widget(static_cast<int>(widgetTypes::CellType)));
+        emit next_cell->cellFocused({row,column});
+    }
 }
 
 void Box::mousePressEvent(QMouseEvent *event)

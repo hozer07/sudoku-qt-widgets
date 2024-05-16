@@ -195,9 +195,12 @@ void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> coordinates)
     if(focusedCell == coordinates)
     {
         auto cell_value = qobject_cast<Cell*>(getBox(coordinates)->widget(static_cast<int>(Box::widgetTypes::CellType)))->getValue();
-        for(auto& box : getCellsOfSameValue(cell_value))
+        if( 0 != cell_value)
         {
-            highlightBox(box);
+            for(auto& box : getCellsOfSameValue(cell_value))
+            {
+                highlightBox(box);
+            }
         }
         return;
     }
@@ -219,8 +222,8 @@ void MainWindow::keepCellFocus(coordinateType cellCoordinate)
 
     auto [row, column] = cellCoordinate;
 
-    auto cell = qobject_cast<Box*>(boxes[row][column]);
-    cell->setFocus(Qt::MouseFocusReason);
+    auto box = qobject_cast<Box*>(boxes[row][column]);
+    box->setFocus(Qt::MouseFocusReason);
 }
 
 void MainWindow::takeNoteHandler(void)
