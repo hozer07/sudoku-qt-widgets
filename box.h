@@ -19,6 +19,9 @@ public:
         NoteType
     };
     using coordinateType = std::pair<uint8_t,uint8_t>;
+    void setHiglighted(void){m_higlighted = true;}
+    void resetHiglighted(void){m_higlighted = false;}
+    bool isHighlighted(void){return m_higlighted;}
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -27,6 +30,7 @@ protected:
 private:
     MainWindow* mainWindow;
     QStack<coordinateType> notesTaken;
+    bool m_higlighted{false};
 };
 
 #endif // BOX_H

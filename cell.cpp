@@ -46,16 +46,6 @@ Cell::Cell(uint8_t row, uint8_t column, bool isNote) :
     setFocusPolicy(Qt::StrongFocus);
 }
 
-void Cell::setIsFocused()
-{
-    isFocused = true;
-}
-
-void Cell::resetIsFocused()
-{
-    isFocused = false;
-}
-
 void Cell::toggleMarked()
 {
     cellMarked ^= 1;
@@ -63,11 +53,12 @@ void Cell::toggleMarked()
 
 void Cell::setValue(uint8_t keyValue, bool isNote)
 {
-    if(hasValue() && keyValue == value())
+    if(hasValue() && keyValue == getValue())
     {
-        setText(QString{});
+        resetValue();
     }
     else{
+        toggleMarked();
         QFont font;
         font.setPointSize(isNote ? 10 : 25);  // Set font size to 25
         font.setBold(true);
@@ -76,7 +67,6 @@ void Cell::setValue(uint8_t keyValue, bool isNote)
         setAlignment(Qt::AlignCenter);
         m_cellValue = keyValue;
     }
-    toggleMarked();
 }
 
 void Cell::resetValue(void)

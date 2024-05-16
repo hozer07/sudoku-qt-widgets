@@ -15,6 +15,10 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->setSizeConstraint(QLayout::SetFixedSize);
     setCentralWidget(centralWidget);
     setFixedSize(sizeHint());
+    for(size_t num = 0; num < 9; num++)
+    {
+        cellsToHighlight.append(QList<Box*>{});
+    }
 }
 
 void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column)
@@ -63,7 +67,7 @@ void MainWindow::createBoxesGrid(void)
         for (size_t column = 0; column < 9; column++) {
             auto cell = new Cell(row, column, false);
             cell->setMinimumSize(45,45);
-            QObject::connect(cell, &Cell::cellFocused, this, &MainWindow::cleanAndHighlightRowAndColumn);
+            QObject::connect(cell, &Cell::cellFocused, this, &MainWindow::cleanAndHighlightBoxes);
             auto tempStackedWidget = new Box(this);
             tempStackedWidget->addWidget(cell);
             boxes[row].append(tempStackedWidget);
@@ -121,8 +125,14 @@ void MainWindow::createMenuButtons(void)
 MainWindow::~MainWindow() {}
 
 void highlightBox(Box* box){
+
+    if(true == box->isHighlighted())
+    {
+        return;
+    }
+
+    box->setHiglighted();
     auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
-    cell->setIsFocused();
     auto styleOfThisCell = cell->styleSheet();
     styleOfThisCell.append("background-color: rgb(0, 255, 255)");
     cell->setStyleSheet(styleOfThisCell);
@@ -134,8 +144,14 @@ void highlightBox(Box* box){
 }
 
 void cleanBox(Box* box){
+
+    if(false == box->isHighlighted())
+    {
+        return;
+    }
+
+    box->resetHiglighted();
     auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
-    cell->resetIsFocused();
     auto styleOfThisCell = cell->styleSheet();
     styleOfThisCell.remove("background-color: rgb(0, 255, 255)");
     cell->setStyleSheet(styleOfThisCell);
@@ -147,46 +163,52 @@ void cleanBox(Box* box){
 }
 
 
-void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func)
+void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func, MainWindow * mainWindow)
 {
     auto row_index = coordinates.first;
     auto column_index = coordinates.second;
 
+    for(auto& box : cell_grid[row_index]){ // highlight or clean all the cells of the focused row
+        func(box);
+    }
+
+    for(auto& row : cell_grid){ // highlight or clean all the cell of the focused column
+        func(row[column_index]);
+    }
+
     auto box = cell_grid[row_index][column_index];
     func(box);
+    auto value_of_clicked_cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)))->getValue();
 
-    for(auto& box : cell_grid[row_index]){ // highlight or clean all the cells of the focused row
-        auto cell = qobject_cast<Cell*>(box->widget(0));
-        if(cell->getCoordinates() != coordinates)
+    if(0 != value_of_clicked_cell)
+    {
+        for(auto& box : mainWindow->getCellsOfSameValue(value_of_clicked_cell))
         {
             func(box);
         }
     }
-
-    for(auto& row : cell_grid){ // highlight or clean all the cell of the focused column
-        auto cell = qobject_cast<Cell*>(row[column_index]->widget(0));
-        if(cell->getCoordinates() != coordinates)
-        {
-            func(row[column_index]);
-        }
-    }
 }
 
-void MainWindow::cleanAndHighlightRowAndColumn(std::pair<uint8_t, uint8_t> coordinates){
+void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> coordinates){
 
     using namespace std;
     if(focusedCell == coordinates)
     {
+        auto cell_value = qobject_cast<Cell*>(getBox(coordinates)->widget(static_cast<int>(Box::widgetTypes::CellType)))->getValue();
+        for(auto& box : getCellsOfSameValue(cell_value))
+        {
+            highlightBox(box);
+        }
         return;
     }
 
     // Clean previously highlighted row and column
     if( focusedCell != std::pair<uint8_t,uint8_t>{255,255} ) // init state
     {
-        highlightOrClean(boxes, focusedCell, &cleanBox);
+        highlightOrClean(boxes, focusedCell, &cleanBox, this);
     }
 
-    highlightOrClean(boxes, coordinates, &highlightBox);
+    highlightOrClean(boxes, coordinates, &highlightBox, this);
     focusedCell = coordinates;
 }
 
@@ -205,4 +227,17 @@ void MainWindow::takeNoteHandler(void)
 {
     m_takingNote ^= 1;
     keepCellFocus(focusedCell);
+}
+
+void MainWindow::removeCellFromHighlight(uint8_t value, const coordinateType coord)
+{
+    cellsToHighlight[value - 1].removeIf([coord](Box const * box){
+        auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
+        return (cell->getCoordinates() == coord);
+    });
+}
+
+void MainWindow::addCellToHighlight(uint8_t value, Box * box)
+{
+    cellsToHighlight[value - 1].append(box);
 }

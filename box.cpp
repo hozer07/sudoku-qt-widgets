@@ -18,13 +18,24 @@ void Box::keyPressEvent(QKeyEvent *event)
         if(false == is_taking_note)
         {
             this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
+            auto old_value = cell->getValue();
             cell->setValue(keyValue, false);
             while(false == notesTaken.empty())
             {
                 auto noteCoord = notesTaken.pop();
                 auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(noteCoord.first, noteCoord.second)->widget());
-                miniCell->setText(QString{});
+                miniCell->resetValue();
             }
+            auto mainWindow = getMainWindow();
+            if(old_value != keyValue)
+            {
+                if(0 != old_value)
+                {
+                    mainWindow->removeCellFromHighlight(old_value, cell->getCoordinates());
+                }
+                mainWindow->addCellToHighlight(keyValue, this);
+            }
+            emit cell->cellFocused(cell->getCoordinates());
         }
         else{
             this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
@@ -40,7 +51,6 @@ void Box::keyPressEvent(QKeyEvent *event)
 
 void Box::mousePressEvent(QMouseEvent *event)
 {
-    this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
     emit cell->cellFocused(cell->getCoordinates());
 }

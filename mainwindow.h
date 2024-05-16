@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QList>
 #include <utility>
+#include <QVector>
 
 class Box;
 class MainWindow : public QMainWindow
@@ -23,9 +24,11 @@ public:
     coordinateType getFocusedCellCoordinate(void) const {return focusedCell;}
     void keepCellFocus(coordinateType);
     Box * getBox(const coordinateType coord) const {return boxes[coord.first][coord.second];}
-
+    void removeCellFromHighlight(uint8_t value, const coordinateType coord);
+    void addCellToHighlight(uint8_t value, Box*);
+    QList<Box*> getCellsOfSameValue(uint8_t value) const{return cellsToHighlight[value - 1];}
 public slots:
-    void cleanAndHighlightRowAndColumn(coordinateType);
+    void cleanAndHighlightBoxes(coordinateType);
 private:
     QGroupBox *boxesGroup;
     QGridLayout *boxesLayout;
@@ -45,6 +48,8 @@ private:
 
     void createBoxesGrid(void);
     void createMenuButtons(void);
+    uint8_t focusedValue{};
+    QVector<QList<Box*>> cellsToHighlight;
 
 private slots:
     void takeNoteHandler(void);

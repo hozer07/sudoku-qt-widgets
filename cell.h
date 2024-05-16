@@ -14,12 +14,9 @@ class Cell : public QLabel
 public:
     using coordinateType = std::pair<uint8_t,uint8_t>;
     explicit Cell(uint8_t row, uint8_t column, bool isNote);
-    void setIsFocused(void);
-    void resetIsFocused(void);
-    bool isSelected(void) const{return isFocused;}
     bool hasValue(void) const{return cellMarked;}
     void toggleMarked(void);
-    uint8_t value(void) const{return m_cellValue;}
+    uint8_t getValue(void) const{return m_cellValue;}
     void setValue(uint8_t value, bool isNote);
     void resetValue(void);
     coordinateType getCoordinates(void) const{return m_coordinates;}
