@@ -26,7 +26,7 @@ private:
     coordinateType m_coordinates;
 
 signals:
-    void cellFocused(coordinateType);
+    void cellFocused(coordinateType focused_box, uint8_t previous_value);
 };
 
 #endif // CELL_H

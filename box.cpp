@@ -28,6 +28,20 @@ Box::Box(uint8_t row, uint8_t column, MainWindow * mainWindow) : mainWindow(main
     m_coordinate = {row, column};
 }
 
+void Box::cleanNote(void)
+{
+    auto noteGrid = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
+    auto miniCellLayout = qobject_cast<QGridLayout*>(noteGrid->layout());
+
+    while(false == notesTaken.empty())
+    {
+        auto noteCoord = notesTaken.pop();
+        auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(noteCoord.first, noteCoord.second)->widget());
+        miniCell->resetValue();
+    }
+}
+
+
 void Box::keyPressEvent(QKeyEvent *event)
 {
     auto is_taking_note = mainWindow->isTakingNote();
@@ -36,31 +50,18 @@ void Box::keyPressEvent(QKeyEvent *event)
     auto miniCellGroup = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
     QGridLayout * miniCellLayout = qobject_cast<QGridLayout*>(miniCellGroup->layout());
 
+    auto old_value = cell->getValue();
     if( keyValue >= Qt::Key_1 && keyValue <= Qt::Key_9)
     {
         keyValue -= Qt::Key_0;
         if(false == is_taking_note)
         {
             this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
-            auto old_value = cell->getValue();
             cell->setValue(keyValue, false);
-            while(false == notesTaken.empty())
-            {
-                auto noteCoord = notesTaken.pop();
-                auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(noteCoord.first, noteCoord.second)->widget());
-                miniCell->resetValue();
-            }
-            auto mainWindow = getMainWindow();
-            if(old_value != keyValue)
-            {
-                if(0 != old_value)
-                {
-                    mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
-                }
-                mainWindow->addCellToHighlight(keyValue, this);
-            }
-            emit cell->cellFocused(this->getCoordinates());
+            cleanNote();
+            getMainWindow()->addCellToHighlight(keyValue, this);
         }
+
         else{
             this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
             cell->resetValue();
@@ -70,10 +71,17 @@ void Box::keyPressEvent(QKeyEvent *event)
             miniCell->setValue(keyValue, true);
             notesTaken.push({row,column});
         }
+
+        if(0 != old_value)
+        {
+            mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
+        }
+        emit cell->cellFocused(this->getCoordinates(), old_value);
     }
     else if( keyValue >= Qt::Key_Left && keyValue <= Qt::Key_Down)
     {
         auto [row, column] = this->getCoordinates();
+        auto old_value = this->getCurrentBoxValue();
         if( keyValue == Qt::Key_Left && column > 0 )
         {
             column--;
@@ -94,14 +102,15 @@ void Box::keyPressEvent(QKeyEvent *event)
         this->clearFocus();
         next_box->setFocus(Qt::MouseFocusReason);
         auto next_cell = qobject_cast<Cell*>(next_box->widget(static_cast<int>(widgetTypes::CellType)));
-        emit next_cell->cellFocused({row,column});
+        emit next_cell->cellFocused({row,column}, old_value);
     }
 }
 
 void Box::mousePressEvent(QMouseEvent *event)
 {
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
-    emit cell->cellFocused(this->getCoordinates());
+    auto previousValue = mainWindow->getBox(mainWindow->getFocusedCellCoordinate())->getCurrentBoxValue();
+    emit cell->cellFocused(this->getCoordinates(), previousValue);
 }
 
 static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column)
@@ -137,7 +146,7 @@ static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t colu
     miniCellGroup->setStyleSheet(styleOfMiniCellGroup);
 }
 
-uint8_t Box::getCurrentBoxValue(void)
+uint8_t Box::getCurrentBoxValue(void)const
 {
     auto value = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)))->getValue();
     return value;
@@ -147,7 +156,6 @@ uint8_t Box::getCurrentBoxValue(void)
 void Box::cleanBox(void){
 
     auto box = this;
-
     if(false == box->isHighlighted())
     {
         return;
@@ -183,4 +191,17 @@ void Box::highlightBox(void){
     auto styleOfMiniGroup = miniGroup->styleSheet();
     styleOfMiniGroup.append("background-color: rgb(0, 255, 255)");
     miniGroup->setStyleSheet(styleOfMiniGroup);
+}
+
+void Box::erase(void)
+{
+    cleanNote();
+    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
+    auto old_value = cell->getValue();
+    if(0 != old_value)
+    {
+        mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
+    }
+    cell->resetValue();
+    emit cell->cellFocused(this->getCoordinates(), old_value);
 }

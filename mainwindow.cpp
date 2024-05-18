@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
     setFixedSize(sizeHint());
     for(size_t num = 0; num < 9; num++)
     {
-        boxesToHighlight.append(QSet<Box*>{});
+        boxesOfSameValue.append(QSet<Box*>{});
     }
 }
 
@@ -64,13 +64,14 @@ void MainWindow::createMenuButtons(void)
 
     takeNoteButton->setCheckable(true);
     connect(takeNoteButton, &QPushButton::toggled, this, &MainWindow::takeNoteHandler);
+    connect(eraseButton, &QPushButton::pressed, this, &MainWindow::eraseHandler);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }
 
 MainWindow::~MainWindow() {}
 
-void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func, MainWindow * mainWindow)
+void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func, MainWindow const * mainWindow, uint8_t cellValue)
 {
     auto row_index = coordinates.first;
     auto column_index = coordinates.second;
@@ -83,46 +84,22 @@ void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t>
         func(row[column_index]);
     }
 
-    auto box = cell_grid[row_index][column_index];
-    func(box);
-    auto value_of_clicked_cell = box->getCurrentBoxValue();
-
-    if(0 != value_of_clicked_cell)
+    if(0 != cellValue)
     {
-        auto cells_to_highlight = mainWindow->getCellsOfSameValue(value_of_clicked_cell);
+        auto cells_to_highlight = mainWindow->getCellsOfSameValue(cellValue);
         std::for_each(cells_to_highlight.begin(), cells_to_highlight.end(), func);
     }
 }
 
-void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> coordinates){
-
-    using namespace std;
-    if(focusedCell == coordinates)
-    {
-        auto cell_value = getBox(coordinates)->getCurrentBoxValue();
-        if( 0 != cell_value)
-        {
-            auto cells_to_highlight = getCellsOfSameValue(cell_value);
-            std::for_each(cells_to_highlight.begin(), cells_to_highlight.end(), std::function<void(Box*)>{&Box::highlightBox});
-        }
-        return;
-    }
-
-    // Clean previously highlighted row and column
-    if( focusedCell != std::pair<uint8_t,uint8_t>{255,255} ) // init state
-    {
-        highlightOrClean(boxes, focusedCell, &Box::cleanBox, this);
-    }
-
-    highlightOrClean(boxes, coordinates, &Box::highlightBox, this);
-    focusedCell = coordinates;
+void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> newFocusCell, uint8_t previousValue)
+{
+    highlightOrClean(boxes, currentlyFocusedCell, &Box::cleanBox, this, previousValue);
+    highlightOrClean(boxes, newFocusCell, &Box::highlightBox, this, getBox(newFocusCell)->getCurrentBoxValue());
+    currentlyFocusedCell = newFocusCell;
 }
 
 void MainWindow::keepCellFocus(coordinateType cellCoordinate)
 {
-    if( cellCoordinate == coordinateType{255,255} )
-        return;
-
     auto [row, column] = cellCoordinate;
     auto box = boxes[row][column];
     box->setFocus(Qt::MouseFocusReason);
@@ -131,17 +108,23 @@ void MainWindow::keepCellFocus(coordinateType cellCoordinate)
 void MainWindow::takeNoteHandler(void)
 {
     m_takingNote ^= 1;
-    keepCellFocus(focusedCell);
+    keepCellFocus(currentlyFocusedCell);
 }
 
 void MainWindow::removeCellFromHighlight(uint8_t value, const coordinateType coord)
 {
-    boxesToHighlight[value - 1].removeIf([coord](Box const * box){
+    boxesOfSameValue[value - 1].removeIf([coord](Box const * box){
         return (box->getCoordinates() == coord);
     });
 }
 
 void MainWindow::addCellToHighlight(uint8_t value, Box * box)
 {
-    boxesToHighlight[value - 1].insert(box);
+    boxesOfSameValue[value - 1].insert(box);
+}
+
+void MainWindow::eraseHandler(void)
+{
+    auto box = getBox(currentlyFocusedCell);
+    box->erase();
 }
