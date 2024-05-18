@@ -2,7 +2,31 @@
 #include "mainwindow.h"
 #include "cell.h"
 
-Box::Box(MainWindow * mainWindow) : mainWindow(mainWindow) {}
+static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column);
+
+Box::Box(uint8_t row, uint8_t column, MainWindow * mainWindow) : mainWindow(mainWindow) {
+    auto cell = new Cell(row, column, false);
+    cell->setMinimumSize(45,45);
+    QObject::connect(cell, &Cell::cellFocused, mainWindow, &MainWindow::cleanAndHighlightBoxes);
+    this->addWidget(cell);
+    auto miniCellGroupForNote = new QGroupBox;
+    auto miniCellLayoutForNote = new QGridLayout(miniCellGroupForNote);
+    miniCellLayoutForNote->setSpacing(0);
+    miniCellLayoutForNote->setContentsMargins(0, 0, 0, 0);
+    setupNoteBorders(miniCellGroupForNote, row, column);
+    this->addWidget(miniCellGroupForNote);
+
+    for (size_t subRow = 0; subRow < 3; ++subRow) {
+        for (size_t subColumn = 0; subColumn < 3; ++subColumn) {
+            auto noteCell = new Cell(subRow, subColumn, true);
+            noteCell->setFixedSize(15,15);
+            noteCell->setAlignment(Qt::AlignCenter);
+            miniCellLayoutForNote->addWidget(noteCell, subRow, subColumn);
+        }
+    }
+    miniCellGroupForNote->setLayout(miniCellLayoutForNote);
+    m_coordinate = {row, column};
+}
 
 void Box::keyPressEvent(QKeyEvent *event)
 {
@@ -31,11 +55,11 @@ void Box::keyPressEvent(QKeyEvent *event)
             {
                 if(0 != old_value)
                 {
-                    mainWindow->removeCellFromHighlight(old_value, cell->getCoordinates());
+                    mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
                 }
                 mainWindow->addCellToHighlight(keyValue, this);
             }
-            emit cell->cellFocused(cell->getCoordinates());
+            emit cell->cellFocused(this->getCoordinates());
         }
         else{
             this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
@@ -49,7 +73,7 @@ void Box::keyPressEvent(QKeyEvent *event)
     }
     else if( keyValue >= Qt::Key_Left && keyValue <= Qt::Key_Down)
     {
-        auto [row, column] = cell->getCoordinates();
+        auto [row, column] = this->getCoordinates();
         if( keyValue == Qt::Key_Left && column > 0 )
         {
             column--;
@@ -77,5 +101,86 @@ void Box::keyPressEvent(QKeyEvent *event)
 void Box::mousePressEvent(QMouseEvent *event)
 {
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
-    emit cell->cellFocused(cell->getCoordinates());
+    emit cell->cellFocused(this->getCoordinates());
+}
+
+static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column)
+{
+    auto styleOfMiniCellGroup = miniCellGroup->styleSheet();
+    if(0 == row || 3 == row || 6 == row)
+    {
+        styleOfMiniCellGroup.append("border-top: 4px solid red;");
+    }
+    else if(8 == row)
+    {
+        styleOfMiniCellGroup.append("border-top: 1px solid black;");
+        styleOfMiniCellGroup.append("border-bottom: 4px solid red;");
+    }
+    else
+    {
+        styleOfMiniCellGroup.append("border-top: 1px solid black;");
+    }
+
+    if(0 == column || 3 == column || 6 == column)
+    {
+        styleOfMiniCellGroup.append("border-left: 4px solid red;");
+    }
+    else if(8 == column)
+    {
+        styleOfMiniCellGroup.append("border-left: 1px solid black;");
+        styleOfMiniCellGroup.append("border-right: 4px solid red;");
+    }
+    else
+    {
+        styleOfMiniCellGroup.append("border-left: 1px solid black;");
+    }
+    miniCellGroup->setStyleSheet(styleOfMiniCellGroup);
+}
+
+uint8_t Box::getCurrentBoxValue(void)
+{
+    auto value = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)))->getValue();
+    return value;
+}
+
+
+void Box::cleanBox(void){
+
+    auto box = this;
+
+    if(false == box->isHighlighted())
+    {
+        return;
+    }
+
+    box->resetHiglighted();
+    auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
+    auto styleOfThisCell = cell->styleSheet();
+    styleOfThisCell.remove("background-color: rgb(0, 255, 255)");
+    cell->setStyleSheet(styleOfThisCell);
+
+    auto miniGroup = qobject_cast<QGroupBox*>(box->widget(static_cast<int>(Box::widgetTypes::NoteType)));
+    auto styleOfMiniGroup = miniGroup->styleSheet();
+    styleOfMiniGroup.remove("background-color: rgb(0, 255, 255)");
+    miniGroup->setStyleSheet(styleOfMiniGroup);
+}
+
+void Box::highlightBox(void){
+
+    auto box = this;
+    if(true == box->isHighlighted())
+    {
+        return;
+    }
+
+    box->setHiglighted();
+    auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
+    auto styleOfThisCell = cell->styleSheet();
+    styleOfThisCell.append("background-color: rgb(0, 255, 255)");
+    cell->setStyleSheet(styleOfThisCell);
+
+    auto miniGroup = qobject_cast<QGroupBox*>(box->widget(static_cast<int>(Box::widgetTypes::NoteType)));
+    auto styleOfMiniGroup = miniGroup->styleSheet();
+    styleOfMiniGroup.append("background-color: rgb(0, 255, 255)");
+    miniGroup->setStyleSheet(styleOfMiniGroup);
 }

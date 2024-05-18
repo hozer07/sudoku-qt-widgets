@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include <functional>
-#include "cell.h"
 #include "box.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -17,47 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
     setFixedSize(sizeHint());
     for(size_t num = 0; num < 9; num++)
     {
-        cellsToHighlight.append(QList<Box*>{});
+        boxesToHighlight.append(QSet<Box*>{});
     }
-}
-
-void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column)
-{
-    auto styleOfMiniCellGroup = miniCellGroup->styleSheet();
-    if(0 == row || 3 == row || 6 == row)
-    {
-        styleOfMiniCellGroup.append("border-top: 4px solid red;");
-    }
-    else if(8 == row)
-    {
-        styleOfMiniCellGroup.append("border-top: 1px solid black;");
-        styleOfMiniCellGroup.append("border-bottom: 4px solid red;");
-    }
-    else
-    {
-        styleOfMiniCellGroup.append("border-top: 1px solid black;");
-    }
-
-    if(0 == column || 3 == column || 6 == column)
-    {
-        styleOfMiniCellGroup.append("border-left: 4px solid red;");
-    }
-    else if(8 == column)
-    {
-        styleOfMiniCellGroup.append("border-left: 1px solid black;");
-        styleOfMiniCellGroup.append("border-right: 4px solid red;");
-    }
-    else
-    {
-        styleOfMiniCellGroup.append("border-left: 1px solid black;");
-    }
-    miniCellGroup->setStyleSheet(styleOfMiniCellGroup);
 }
 
 void MainWindow::createBoxesGrid(void)
 {
     boxesGroup = new QGroupBox(this);
-
     boxesLayout = new QGridLayout(boxesGroup);
     boxesLayout->setSpacing(0);
     boxesLayout->setContentsMargins(0, 0, 0, 0);
@@ -65,28 +30,9 @@ void MainWindow::createBoxesGrid(void)
     for (size_t row = 0; row < 9; row++) {
         boxes.append(QList<Box*>{});
         for (size_t column = 0; column < 9; column++) {
-            auto cell = new Cell(row, column, false);
-            cell->setMinimumSize(45,45);
-            QObject::connect(cell, &Cell::cellFocused, this, &MainWindow::cleanAndHighlightBoxes);
-            auto tempStackedWidget = new Box(this);
-            tempStackedWidget->addWidget(cell);
+            auto tempStackedWidget = new Box(row, column, this);
             boxes[row].append(tempStackedWidget);
             boxesLayout->addWidget(tempStackedWidget, row, column);
-            auto miniCellGroupForNote = new QGroupBox;
-            auto miniCellLayoutForNote = new QGridLayout(miniCellGroupForNote);
-            miniCellLayoutForNote->setSpacing(0);
-            miniCellLayoutForNote->setContentsMargins(0, 0, 0, 0);
-            tempStackedWidget->addWidget(miniCellGroupForNote);
-            setupNoteBorders(miniCellGroupForNote, row, column);
-            for (size_t subRow = 0; subRow < 3; ++subRow) {
-                for (size_t subColumn = 0; subColumn < 3; ++subColumn) {
-                    auto noteCell = new Cell(subRow, subColumn, true);
-                    noteCell->setFixedSize(15,15);
-                    noteCell->setAlignment(Qt::AlignCenter);
-                    miniCellLayoutForNote->addWidget(noteCell, subRow, subColumn);
-                }
-            }
-            miniCellGroupForNote->setLayout(miniCellLayoutForNote);
         }
     }
     boxesGroup->setLayout(boxesLayout);
@@ -124,45 +70,6 @@ void MainWindow::createMenuButtons(void)
 
 MainWindow::~MainWindow() {}
 
-void highlightBox(Box* box){
-
-    if(true == box->isHighlighted())
-    {
-        return;
-    }
-
-    box->setHiglighted();
-    auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
-    auto styleOfThisCell = cell->styleSheet();
-    styleOfThisCell.append("background-color: rgb(0, 255, 255)");
-    cell->setStyleSheet(styleOfThisCell);
-
-    auto miniGroup = qobject_cast<QGroupBox*>(box->widget(static_cast<int>(Box::widgetTypes::NoteType)));
-    auto styleOfMiniGroup = miniGroup->styleSheet();
-    styleOfMiniGroup.append("background-color: rgb(0, 255, 255)");
-    miniGroup->setStyleSheet(styleOfMiniGroup);
-}
-
-void cleanBox(Box* box){
-
-    if(false == box->isHighlighted())
-    {
-        return;
-    }
-
-    box->resetHiglighted();
-    auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
-    auto styleOfThisCell = cell->styleSheet();
-    styleOfThisCell.remove("background-color: rgb(0, 255, 255)");
-    cell->setStyleSheet(styleOfThisCell);
-
-    auto miniGroup = qobject_cast<QGroupBox*>(box->widget(static_cast<int>(Box::widgetTypes::NoteType)));
-    auto styleOfMiniGroup = miniGroup->styleSheet();
-    styleOfMiniGroup.remove("background-color: rgb(0, 255, 255)");
-    miniGroup->setStyleSheet(styleOfMiniGroup);
-}
-
-
 void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func, MainWindow * mainWindow)
 {
     auto row_index = coordinates.first;
@@ -178,14 +85,12 @@ void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t>
 
     auto box = cell_grid[row_index][column_index];
     func(box);
-    auto value_of_clicked_cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)))->getValue();
+    auto value_of_clicked_cell = box->getCurrentBoxValue();
 
     if(0 != value_of_clicked_cell)
     {
-        for(auto& box : mainWindow->getCellsOfSameValue(value_of_clicked_cell))
-        {
-            func(box);
-        }
+        auto cells_to_highlight = mainWindow->getCellsOfSameValue(value_of_clicked_cell);
+        std::for_each(cells_to_highlight.begin(), cells_to_highlight.end(), func);
     }
 }
 
@@ -194,13 +99,11 @@ void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> coordinates)
     using namespace std;
     if(focusedCell == coordinates)
     {
-        auto cell_value = qobject_cast<Cell*>(getBox(coordinates)->widget(static_cast<int>(Box::widgetTypes::CellType)))->getValue();
+        auto cell_value = getBox(coordinates)->getCurrentBoxValue();
         if( 0 != cell_value)
         {
-            for(auto& box : getCellsOfSameValue(cell_value))
-            {
-                highlightBox(box);
-            }
+            auto cells_to_highlight = getCellsOfSameValue(cell_value);
+            std::for_each(cells_to_highlight.begin(), cells_to_highlight.end(), std::function<void(Box*)>{&Box::highlightBox});
         }
         return;
     }
@@ -208,10 +111,10 @@ void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> coordinates)
     // Clean previously highlighted row and column
     if( focusedCell != std::pair<uint8_t,uint8_t>{255,255} ) // init state
     {
-        highlightOrClean(boxes, focusedCell, &cleanBox, this);
+        highlightOrClean(boxes, focusedCell, &Box::cleanBox, this);
     }
 
-    highlightOrClean(boxes, coordinates, &highlightBox, this);
+    highlightOrClean(boxes, coordinates, &Box::highlightBox, this);
     focusedCell = coordinates;
 }
 
@@ -221,8 +124,7 @@ void MainWindow::keepCellFocus(coordinateType cellCoordinate)
         return;
 
     auto [row, column] = cellCoordinate;
-
-    auto box = qobject_cast<Box*>(boxes[row][column]);
+    auto box = boxes[row][column];
     box->setFocus(Qt::MouseFocusReason);
 }
 
@@ -234,13 +136,12 @@ void MainWindow::takeNoteHandler(void)
 
 void MainWindow::removeCellFromHighlight(uint8_t value, const coordinateType coord)
 {
-    cellsToHighlight[value - 1].removeIf([coord](Box const * box){
-        auto cell = qobject_cast<Cell*>(box->widget(static_cast<int>(Box::widgetTypes::CellType)));
-        return (cell->getCoordinates() == coord);
+    boxesToHighlight[value - 1].removeIf([coord](Box const * box){
+        return (box->getCoordinates() == coord);
     });
 }
 
 void MainWindow::addCellToHighlight(uint8_t value, Box * box)
 {
-    cellsToHighlight[value - 1].append(box);
+    boxesToHighlight[value - 1].insert(box);
 }

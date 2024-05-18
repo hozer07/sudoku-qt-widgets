@@ -10,6 +10,7 @@
 #include <QList>
 #include <utility>
 #include <QVector>
+#include <QSet>
 
 class Box;
 class MainWindow : public QMainWindow
@@ -26,7 +27,7 @@ public:
     Box * getBox(const coordinateType coord) const {return boxes[coord.first][coord.second];}
     void removeCellFromHighlight(uint8_t value, const coordinateType coord);
     void addCellToHighlight(uint8_t value, Box*);
-    QList<Box*> getCellsOfSameValue(uint8_t value) const{return cellsToHighlight[value - 1];}
+    QSet<Box*> getCellsOfSameValue(uint8_t value) const{return boxesToHighlight[value - 1];}
 public slots:
     void cleanAndHighlightBoxes(coordinateType);
 private:
@@ -49,7 +50,7 @@ private:
     void createBoxesGrid(void);
     void createMenuButtons(void);
     uint8_t focusedValue{};
-    QVector<QList<Box*>> cellsToHighlight;
+    QVector<QSet<Box*>> boxesToHighlight;
 
 private slots:
     void takeNoteHandler(void);
