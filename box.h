@@ -30,6 +30,7 @@ public:
     void cleanBox(void);
     void highlightBox(void);
     void erase(void);
+    uint8_t getBoxTrueValue(void);
     void mousePressEvent(QMouseEvent *event) override;
 
 protected:

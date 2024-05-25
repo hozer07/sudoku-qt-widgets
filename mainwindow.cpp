@@ -73,6 +73,7 @@ void MainWindow::createMenuButtons(void)
     connect(takeNoteButton, &QPushButton::toggled, this, &MainWindow::takeNoteHandler);
     connect(eraseButton, &QPushButton::pressed, this, &MainWindow::eraseHandler);
     connect(newGameButton, &QPushButton::pressed, this, &MainWindow::startNewGame);
+    connect(hintButton, &QPushButton::pressed, this, &MainWindow::giveHint);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }
@@ -224,3 +225,13 @@ void MainWindow::generateNewPuzzle(void)
 
 }
 
+void MainWindow::giveHint(void)
+{
+    auto focusedBox = getBox(currentlyFocusedCell);
+    const auto trueValue = focusedBox->getBoxTrueValue();
+    const auto currentValue = focusedBox->getCurrentBoxValue();
+    if( trueValue != currentValue )
+    {
+        focusedBox->setBoxValue(trueValue);
+    }
+}

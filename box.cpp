@@ -221,3 +221,9 @@ void Box::resetBoxValue(void)
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
     cell->resetValue();
 }
+
+uint8_t Box::getBoxTrueValue(void)
+{
+    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
+    return cell->getTrueValue();
+}

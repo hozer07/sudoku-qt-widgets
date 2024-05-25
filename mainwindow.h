@@ -65,5 +65,6 @@ private slots:
     void startNewGame(void);
     void generateNewPuzzle(void);
     void setValuesOnPuzzle(void);
+    void giveHint(void);
 };
 #endif // MAINWINDOW_H

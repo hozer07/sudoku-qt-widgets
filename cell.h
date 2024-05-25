@@ -18,6 +18,7 @@ public:
     uint8_t getValue(void) const{return m_cellValue;}
     void setValue(uint8_t value, bool isNote);
     void setTrueValue(uint8_t value){m_trueValue = value;}
+    uint8_t getTrueValue(void)const{return m_trueValue;}
     void resetValue(void);
 private:
     bool isFocused{false};
