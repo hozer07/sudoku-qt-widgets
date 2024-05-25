@@ -1,6 +1,13 @@
 #include "mainwindow.h"
 #include <functional>
 #include "box.h"
+#include <QComboBox>
+#include <QDialog>
+#include <QProcess>
+#include <QStringList>
+#include <cstdlib>
+#include <QDir>
+#include <algorithm>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -65,6 +72,7 @@ void MainWindow::createMenuButtons(void)
     takeNoteButton->setCheckable(true);
     connect(takeNoteButton, &QPushButton::toggled, this, &MainWindow::takeNoteHandler);
     connect(eraseButton, &QPushButton::pressed, this, &MainWindow::eraseHandler);
+    connect(newGameButton, &QPushButton::pressed, this, &MainWindow::startNewGame);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }
@@ -128,3 +136,91 @@ void MainWindow::eraseHandler(void)
     auto box = getBox(currentlyFocusedCell);
     box->erase();
 }
+
+void MainWindow::startNewGame(void)
+{
+    QDialog newGameSetting{this};
+    difficultySetting = &newGameSetting;
+    newGameSetting.setWindowTitle("Difficulty");
+    newGameSetting.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    QGridLayout layout;
+    QLabel label{"Choose Difficulty:"};
+    QComboBox levels{};
+    levels.addItem("Easy");
+    levels.addItem("Medium");
+    levels.addItem("Hard");
+    levels.addItem("Insane");
+    connect(&levels, &QComboBox::currentIndexChanged, this, &MainWindow::setDifficulty);
+
+    layout.addWidget(&label, 0, 0);
+    layout.addWidget(&levels, 0, 1);
+
+    QPushButton okButton{"Start Game"}, cancelButton{"Cancel"};
+    connect(&okButton, &QPushButton::pressed, this, &MainWindow::generateNewPuzzle);
+    connect(&cancelButton, &QPushButton::pressed, &newGameSetting, &QDialog::close);
+    layout.addWidget(&okButton, 1, 0);
+    layout.addWidget(&cancelButton, 1, 1);
+
+    newGameSetting.setLayout(&layout);
+
+    newGameSetting.exec();
+}
+
+void MainWindow::setDifficulty(int difficulty)
+{
+    m_difficulty_index = difficulty;
+}
+
+void MainWindow::setValuesOnPuzzle(void)
+{
+    using namespace std;
+    auto stdout = puzzleGenerator->readAllStandardOutput();
+    auto marker = '\n';
+    auto answerKeyStart = next(std::find(begin(stdout), end(stdout), marker));
+    auto puzzleStart = next(std::find(next(answerKeyStart), end(stdout), marker));
+    vector<int> answers, puzzleValues;
+
+    copy_if(answerKeyStart, puzzleStart, back_inserter(answers), [](char c){
+        return (c >= '0' && c <= '9');
+    });
+
+    copy_if(puzzleStart, end(stdout), back_inserter(puzzleValues), [](char c){
+        return (c >= '0' && c <= '9');
+    });
+
+    for (size_t i = 0; i < 81; i++)
+    {
+        auto row = i / 9;
+        auto column = i % 9;
+        auto box = getBox({row, column});
+        box->mousePressEvent({});
+        box->erase();
+        box->setBoxTrueValue(answers[i] - '0');
+        if('0' != puzzleValues[i])
+        {
+            box->setBoxValue(puzzleValues[i] - '0');
+        }
+    }
+    getBox({3, 3})->mousePressEvent({});
+}
+
+void MainWindow::generateNewPuzzle(void)
+{
+    auto puzzleGeneratorProcess = new QProcess{this};
+    puzzleGenerator = puzzleGeneratorProcess;
+    const QString difficulties[] = {"Easy", "Medium", "Hard", "Insane"};
+    // Get the path to this source file
+    QString sourceFilePath = __FILE__;
+    QFileInfo fileInfo(sourceFilePath);
+    QString scriptPath = fileInfo.absolutePath() + "/puzzle_generator.py";
+    const QString command = "python3";
+    QStringList arguments{};
+    arguments << scriptPath << difficulties[m_difficulty_index];
+
+    connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
+    connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
+    puzzleGeneratorProcess->start(command, arguments);
+
+
+}
+

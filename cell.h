@@ -14,15 +14,16 @@ class Cell : public QLabel
 public:
     using coordinateType = std::pair<uint8_t,uint8_t>;
     explicit Cell(uint8_t row, uint8_t column, bool isNote);
-    bool hasValue(void) const{return cellMarked;}
-    void toggleMarked(void);
+    bool hasValue(void) const{return m_cellMarked;}
     uint8_t getValue(void) const{return m_cellValue;}
     void setValue(uint8_t value, bool isNote);
+    void setTrueValue(uint8_t value){m_trueValue = value;}
     void resetValue(void);
 private:
     bool isFocused{false};
-    bool cellMarked{false};
+    bool m_cellMarked{false};
     uint8_t m_cellValue{0};
+    uint8_t m_trueValue{0};
     coordinateType m_coordinates;
 
 signals:

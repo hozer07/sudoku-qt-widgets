@@ -41,42 +41,46 @@ void Box::cleanNote(void)
     }
 }
 
+void Box::setBoxValue(uint8_t keyValue)
+{
+    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
+    auto old_value = cell->getValue();
+    auto is_taking_note = mainWindow->isTakingNote();
+
+    if(false == is_taking_note)
+    {
+        this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
+        cell->setValue(keyValue, false);
+        cleanNote();
+        getMainWindow()->addCellToHighlight(keyValue, this);
+    }
+    else{
+        auto miniCellGroup = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
+        QGridLayout * miniCellLayout = qobject_cast<QGridLayout*>(miniCellGroup->layout());
+        this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
+        cell->resetValue();
+        auto row = (keyValue - 1) / 3;
+        auto column = (keyValue - 1) % 3;
+        auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(row, column)->widget());
+        miniCell->setValue(keyValue, true);
+        notesTaken.push({row,column});
+    }
+
+    if(0 != old_value)
+    {
+        mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
+    }
+    emit cell->cellFocused(this->getCoordinates(), old_value);
+}
 
 void Box::keyPressEvent(QKeyEvent *event)
 {
-    auto is_taking_note = mainWindow->isTakingNote();
     auto keyValue = event->key();
-    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
-    auto miniCellGroup = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
-    QGridLayout * miniCellLayout = qobject_cast<QGridLayout*>(miniCellGroup->layout());
 
-    auto old_value = cell->getValue();
     if( keyValue >= Qt::Key_1 && keyValue <= Qt::Key_9)
     {
         keyValue -= Qt::Key_0;
-        if(false == is_taking_note)
-        {
-            this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
-            cell->setValue(keyValue, false);
-            cleanNote();
-            getMainWindow()->addCellToHighlight(keyValue, this);
-        }
-
-        else{
-            this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
-            cell->resetValue();
-            auto row = (keyValue - 1) / 3;
-            auto column = (keyValue - 1) % 3;
-            auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(row, column)->widget());
-            miniCell->setValue(keyValue, true);
-            notesTaken.push({row,column});
-        }
-
-        if(0 != old_value)
-        {
-            mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
-        }
-        emit cell->cellFocused(this->getCoordinates(), old_value);
+        setBoxValue(keyValue);
     }
     else if( keyValue >= Qt::Key_Left && keyValue <= Qt::Key_Down)
     {
@@ -204,4 +208,16 @@ void Box::erase(void)
     }
     cell->resetValue();
     emit cell->cellFocused(this->getCoordinates(), old_value);
+}
+
+void Box::setBoxTrueValue(uint8_t value)
+{
+    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
+    cell->setTrueValue(value);
+}
+
+void Box::resetBoxValue(void)
+{
+    auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
+    cell->resetValue();
 }

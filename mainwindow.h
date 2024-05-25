@@ -13,6 +13,8 @@
 #include <QSet>
 
 class Box;
+class QDialog;
+class QProcess;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -23,13 +25,14 @@ public:
     ~MainWindow();
     bool isTakingNote(void) const{return m_takingNote;}
     coordinateType getFocusedCellCoordinate(void) const {return currentlyFocusedCell;}
-    void keepCellFocus(coordinateType);
     Box * getBox(const coordinateType coord) const {return boxes[coord.first][coord.second];}
     void removeCellFromHighlight(uint8_t value, const coordinateType coord);
     void addCellToHighlight(uint8_t value, Box*);
     QSet<Box*> getCellsOfSameValue(uint8_t value) const{return boxesOfSameValue[value - 1];}
+    void keepCellFocus(coordinateType cellCoordinate);
 public slots:
     void cleanAndHighlightBoxes(coordinateType, uint8_t previousValue);
+    void setDifficulty(int);
 private:
     QGroupBox *boxesGroup;
     QGridLayout *boxesLayout;
@@ -51,10 +54,16 @@ private:
     void createMenuButtons(void);
     uint8_t focusedValue{};
     QVector<QSet<Box*>> boxesOfSameValue;
+    int m_difficulty_index{};
+    QDialog* difficultySetting;
+    QProcess* puzzleGenerator;
+
 
 private slots:
     void takeNoteHandler(void);
     void eraseHandler(void);
-
+    void startNewGame(void);
+    void generateNewPuzzle(void);
+    void setValuesOnPuzzle(void);
 };
 #endif // MAINWINDOW_H

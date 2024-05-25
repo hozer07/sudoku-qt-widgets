@@ -24,12 +24,15 @@ public:
     bool isHighlighted(void){return m_higlighted;}const
     coordinateType getCoordinates(void)const {return m_coordinate;}
     uint8_t getCurrentBoxValue(void)const;
+    void setBoxValue(uint8_t);
+    void setBoxTrueValue(uint8_t);
+    void resetBoxValue(void);
     void cleanBox(void);
     void highlightBox(void);
     void erase(void);
+    void mousePressEvent(QMouseEvent *event) override;
 
 protected:
-    void mousePressEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
 private:
