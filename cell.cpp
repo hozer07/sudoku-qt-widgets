@@ -1,6 +1,7 @@
 #include "cell.h"
 #include <QObject>
 #include <QString>
+#include <QRegularExpression>
 
 Cell::Cell(uint8_t row, uint8_t column, bool isNote) :
     m_coordinates({row,column})
@@ -41,7 +42,7 @@ Cell::Cell(uint8_t row, uint8_t column, bool isNote) :
     {
         styleOfThisCell.append("border: none;");
     }
-
+    styleOfThisCell.append("color : black;");
     setStyleSheet(styleOfThisCell);
     setFocusPolicy(Qt::StrongFocus);
 }
@@ -62,6 +63,18 @@ void Cell::setValue(uint8_t keyValue, bool isNote)
         setText(QString::number(keyValue));
         setAlignment(Qt::AlignCenter);
         m_cellValue = keyValue;
+
+        static QRegularExpression regex("color\\s*:\\s*[^;]+;");
+        auto style = styleSheet();
+        if( auto trueValue = getTrueValue(); trueValue != keyValue && false == isNote)
+        {
+            style.replace(regex, "color : red;");
+        }
+        else
+        {
+            style.replace(regex, "color : black;");
+        }
+        setStyleSheet(style);
     }
 }
 

@@ -195,7 +195,6 @@ void MainWindow::setValuesOnPuzzle(void)
         auto column = i % 9;
         auto box = getBox({row, column});
         box->mousePressEvent({});
-        box->erase();
         box->setBoxTrueValue(answers[i] - '0');
         if('0' != puzzleValues[i])
         {
@@ -203,6 +202,7 @@ void MainWindow::setValuesOnPuzzle(void)
         }
     }
     getBox({3, 3})->mousePressEvent({});
+    keepCellFocus({3, 3});
 }
 
 void MainWindow::generateNewPuzzle(void)
@@ -221,8 +221,6 @@ void MainWindow::generateNewPuzzle(void)
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
     puzzleGeneratorProcess->start(command, arguments);
-
-
 }
 
 void MainWindow::giveHint(void)
