@@ -2,11 +2,12 @@
 #define BOX_H
 
 #include <QStackedWidget>
-#include <QEvent>
-#include <QMouseEvent>
 #include <QStack>
 
 class MainWindow;
+class QMouseEvent;
+class QKeyEvent;
+
 class Box : public QStackedWidget
 {
     Q_OBJECT
@@ -21,17 +22,17 @@ public:
     using coordinateType = std::pair<uint8_t,uint8_t>;
     void setHiglighted(void){m_higlighted = true;}
     void resetHiglighted(void){m_higlighted = false;}
-    bool isHighlighted(void){return m_higlighted;}const
-    coordinateType getCoordinates(void)const {return m_coordinate;}
-    uint8_t getCurrentBoxValue(void)const;
     void setBoxValue(uint8_t);
     void setBoxTrueValue(uint8_t);
     void resetBoxValue(void);
     void cleanBox(void);
     void highlightBox(void);
     void erase(void);
-    uint8_t getBoxTrueValue(void);
+    bool isHighlighted(void)const {return m_higlighted;}
     void mousePressEvent(QMouseEvent *event) override;
+    coordinateType getCoordinates(void)const {return m_coordinate;}
+    uint8_t getCurrentBoxValue(void)const;
+    uint8_t getBoxTrueValue(void);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

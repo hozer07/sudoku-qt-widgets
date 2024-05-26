@@ -1,13 +1,17 @@
 #include "mainwindow.h"
-#include <functional>
 #include "box.h"
 #include <QComboBox>
 #include <QDialog>
 #include <QProcess>
 #include <QStringList>
-#include <cstdlib>
 #include <QDir>
 #include <algorithm>
+#include <QMovie>
+#include <QPixmap>
+#include <QLabel>
+#include <QLayout>
+#include <QGroupBox>
+#include <QPushButton>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -136,6 +140,7 @@ void MainWindow::eraseHandler(void)
 {
     auto box = getBox(currentlyFocusedCell);
     box->erase();
+    keepCellFocus(currentlyFocusedCell);
 }
 
 void MainWindow::startNewGame(void)
@@ -143,9 +148,11 @@ void MainWindow::startNewGame(void)
     QDialog newGameSetting{this};
     difficultySetting = &newGameSetting;
     newGameSetting.setWindowTitle("Difficulty");
-    newGameSetting.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    // newGameSetting.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    newGameSetting.setFixedSize({290, 80});
     QGridLayout layout;
-    QLabel label{"Choose Difficulty:"};
+    newGameLayout = &layout;
+    QLabel label{"Choose Difficulty:"}, imageLabel;
     QComboBox levels{};
     levels.addItem("Easy");
     levels.addItem("Medium");
@@ -153,17 +160,25 @@ void MainWindow::startNewGame(void)
     levels.addItem("Insane");
     connect(&levels, &QComboBox::currentIndexChanged, this, &MainWindow::setDifficulty);
 
-    layout.addWidget(&label, 0, 0);
-    layout.addWidget(&levels, 0, 1);
+    layout.addWidget(&label, 0, 1);
+    layout.addWidget(&levels, 0, 2);
 
     QPushButton okButton{"Start Game"}, cancelButton{"Cancel"};
     connect(&okButton, &QPushButton::pressed, this, &MainWindow::generateNewPuzzle);
     connect(&cancelButton, &QPushButton::pressed, &newGameSetting, &QDialog::close);
-    layout.addWidget(&okButton, 1, 0);
-    layout.addWidget(&cancelButton, 1, 1);
+    layout.addWidget(&okButton, 1, 1);
+    layout.addWidget(&cancelButton, 1, 2);
+    layout.addWidget(&imageLabel, 0, 0, 2, 1);
+
+    QString sourceFilePath = __FILE__;
+    QFileInfo fileInfo(sourceFilePath);
+    auto imagePath = fileInfo.absolutePath() + "/assets/brain.jpg";
+    QPixmap pixmap( imagePath );
+    imageLabel.setPixmap(pixmap);
+    imageLabel.setScaledContents(true);
+    imageLabel.setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     newGameSetting.setLayout(&layout);
-
     newGameSetting.exec();
 }
 
@@ -195,6 +210,7 @@ void MainWindow::setValuesOnPuzzle(void)
         auto column = i % 9;
         auto box = getBox({row, column});
         box->mousePressEvent({});
+        box->erase();
         box->setBoxTrueValue(answers[i] - '0');
         if('0' != puzzleValues[i])
         {
@@ -221,6 +237,13 @@ void MainWindow::generateNewPuzzle(void)
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
     puzzleGeneratorProcess->start(command, arguments);
+    auto imageLabel = qobject_cast<QLabel*>(newGameLayout->itemAtPosition(0, 0)->widget());
+    imageLabel->clear();
+    auto moviePath = fileInfo.absolutePath() + "/assets/loading.gif";
+    QMovie* movie = new QMovie{moviePath};
+    connect(imageLabel, &QWidget::destroyed, movie, &QMovie::deleteLater);
+    imageLabel->setMovie(movie);
+    movie->start();
 }
 
 void MainWindow::giveHint(void)

@@ -1,6 +1,9 @@
 #include "box.h"
 #include "mainwindow.h"
 #include "cell.h"
+#include <QKeyEvent>
+#include <QGroupBox>
+#include <QLayout>
 
 static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column);
 

@@ -2,19 +2,18 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QLabel>
-#include <QLayout>
-#include <QGroupBox>
-#include <QPushButton>
-#include <QLabel>
 #include <QList>
-#include <utility>
 #include <QVector>
 #include <QSet>
 
 class Box;
 class QDialog;
 class QProcess;
+class QGridLayout;
+class QVBoxLayout;
+class QGroupBox;
+class QPushButton;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -57,6 +56,7 @@ private:
     int m_difficulty_index{};
     QDialog* difficultySetting;
     QProcess* puzzleGenerator;
+    QGridLayout* newGameLayout;
 
 
 private slots:

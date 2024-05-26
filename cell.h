@@ -2,9 +2,6 @@
 #define CELL_H
 
 #include <QLabel>
-#include <QEvent>
-#include <QMouseEvent>
-#include <utility>
 
 class MainWindow;
 
@@ -14,12 +11,12 @@ class Cell : public QLabel
 public:
     using coordinateType = std::pair<uint8_t,uint8_t>;
     explicit Cell(uint8_t row, uint8_t column, bool isNote);
-    bool hasValue(void) const{return m_cellMarked;}
-    uint8_t getValue(void) const{return m_cellValue;}
     void setValue(uint8_t value, bool isNote);
     void setTrueValue(uint8_t value){m_trueValue = value;}
-    uint8_t getTrueValue(void)const{return m_trueValue;}
     void resetValue(void);
+    uint8_t getValue(void) const{return m_cellValue;}
+    uint8_t getTrueValue(void)const{return m_trueValue;}
+    bool hasValue(void) const{return m_cellMarked;}
 private:
     bool isFocused{false};
     bool m_cellMarked{false};
