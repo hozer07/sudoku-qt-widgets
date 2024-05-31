@@ -5,6 +5,7 @@
 #include <QGroupBox>
 #include <QLayout>
 
+
 static void setupNoteBorders(QGroupBox* miniCellGroup, uint8_t row, uint8_t column);
 
 Box::Box(uint8_t row, uint8_t column, MainWindow * mainWindow) : mainWindow(mainWindow) {
@@ -36,44 +37,62 @@ void Box::cleanNote(void)
     auto noteGrid = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
     auto miniCellLayout = qobject_cast<QGridLayout*>(noteGrid->layout());
 
-    while(false == notesTaken.empty())
+    if( notesTaken.any() )
     {
-        auto noteCoord = notesTaken.pop();
-        auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(noteCoord.first, noteCoord.second)->widget());
-        miniCell->resetValue();
+        for(uint8_t note = 0; note < 9; note++)
+        {
+            if( auto bit = notesTaken.test(note); 0 != bit)
+            {
+                auto noteCoord = std::pair<uint8_t, uint8_t>{note / 3, note % 3};
+                auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(noteCoord.first, noteCoord.second)->widget());
+                miniCell->resetValue();
+                notesTaken.set(note, false);
+            }
+        }
     }
 }
 
-void Box::setBoxValue(uint8_t keyValue)
+void Box::takeNote(uint8_t keyValue, Cell * cell)
+{
+    auto miniCellGroup = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
+    QGridLayout * miniCellLayout = qobject_cast<QGridLayout*>(miniCellGroup->layout());
+    this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
+    cell->resetValue();
+    auto row = (keyValue - 1) / 3;
+    auto column = (keyValue - 1) % 3;
+    auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(row, column)->widget());
+    miniCell->setValue(keyValue, true);
+    notesTaken.set(keyValue - 1, true);
+}
+
+void Box::setBoxValue(uint8_t keyValue, bool isNewGame, bool is_taking_note)
 {
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
     auto old_value = cell->getValue();
-    auto is_taking_note = mainWindow->isTakingNote();
 
     if(false == is_taking_note)
     {
         this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
         cell->setValue(keyValue, false);
         cleanNote();
-        getMainWindow()->addCellToHighlight(keyValue, this);
+        if(0 != keyValue)
+        {
+            getMainWindow()->addCellToHighlight(keyValue, this);
+        }
     }
     else{
-        auto miniCellGroup = qobject_cast<QGroupBox*>(this->widget(static_cast<int>(widgetTypes::NoteType)));
-        QGridLayout * miniCellLayout = qobject_cast<QGridLayout*>(miniCellGroup->layout());
-        this->setCurrentIndex(static_cast<int>(widgetTypes::NoteType));
-        cell->resetValue();
-        auto row = (keyValue - 1) / 3;
-        auto column = (keyValue - 1) % 3;
-        auto miniCell = qobject_cast<Cell*>(miniCellLayout->itemAtPosition(row, column)->widget());
-        miniCell->setValue(keyValue, true);
-        notesTaken.push({row,column});
+        takeNote(keyValue, cell);
     }
 
     if(0 != old_value)
     {
-        mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
+        mainWindow->removeCellFromHighlight(old_value, getCoordinates());
     }
-    emit cell->cellFocused(this->getCoordinates(), old_value);
+
+    if(false == isNewGame)
+    {
+        emit cell->cellFocused(getCoordinates(), old_value);
+    }
 }
 
 void Box::keyPressEvent(QKeyEvent *event)
@@ -83,12 +102,23 @@ void Box::keyPressEvent(QKeyEvent *event)
     if( keyValue >= Qt::Key_1 && keyValue <= Qt::Key_9)
     {
         keyValue -= Qt::Key_0;
-        setBoxValue(keyValue);
+
+        if( mainWindow->isTakingNote() )
+        {
+            mainWindow->logEvent(TakeNoteLog{getCoordinates(), (uint8_t)keyValue});
+        }
+        else
+        {
+            auto oldValue = getCurrentBoxValue();
+            mainWindow->logEvent(ChangeValueLog{getCoordinates(), oldValue, notesTaken});
+        }
+
+        setBoxValue(keyValue, false, mainWindow->isTakingNote());
     }
     else if( keyValue >= Qt::Key_Left && keyValue <= Qt::Key_Down)
     {
-        auto [row, column] = this->getCoordinates();
-        auto old_value = this->getCurrentBoxValue();
+        auto [row, column] = getCoordinates();
+        auto old_value = getCurrentBoxValue();
         if( keyValue == Qt::Key_Left && column > 0 )
         {
             column--;
@@ -200,7 +230,7 @@ void Box::highlightBox(void){
     miniGroup->setStyleSheet(styleOfMiniGroup);
 }
 
-void Box::erase(void)
+void Box::erase(bool isNewGame)
 {
     cleanNote();
     auto cell = qobject_cast<Cell*>(this->widget(static_cast<int>(widgetTypes::CellType)));
@@ -210,7 +240,10 @@ void Box::erase(void)
         mainWindow->removeCellFromHighlight(old_value, this->getCoordinates());
     }
     cell->resetValue();
-    emit cell->cellFocused(this->getCoordinates(), old_value);
+    if(false == isNewGame)
+    {
+        emit cell->cellFocused(this->getCoordinates(), old_value);
+    }
 }
 
 void Box::setBoxTrueValue(uint8_t value)

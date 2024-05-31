@@ -5,6 +5,8 @@
 #include <QList>
 #include <QVector>
 #include <QSet>
+#include <QStack>
+#include "logelement.h"
 
 class Box;
 class QDialog;
@@ -29,6 +31,8 @@ public:
     void addCellToHighlight(uint8_t value, Box*);
     QSet<Box*> getCellsOfSameValue(uint8_t value) const{return boxesOfSameValue[value - 1];}
     void keepCellFocus(coordinateType cellCoordinate);
+    void logEvent(LogElement);
+
 public slots:
     void cleanAndHighlightBoxes(coordinateType, uint8_t previousValue);
     void setDifficulty(int);
@@ -57,14 +61,17 @@ private:
     QDialog* difficultySetting;
     QProcess* puzzleGenerator;
     QGridLayout* newGameLayout;
+    QStack<LogElement> logsToUndo;
+    friend class UndoProcessor;
 
 
 private slots:
-    void takeNoteHandler(void);
+    void takeNoteHandler(bool);
     void eraseHandler(void);
     void startNewGame(void);
     void generateNewPuzzle(void);
     void setValuesOnPuzzle(void);
     void giveHint(void);
+    void undoHandler(void);
 };
 #endif // MAINWINDOW_H

@@ -50,7 +50,7 @@ Cell::Cell(uint8_t row, uint8_t column, bool isNote) :
 
 void Cell::setValue(uint8_t keyValue, bool isNote)
 {
-    if(hasValue() && keyValue == getValue())
+    if(0 == keyValue || (hasValue() && keyValue == getValue()))
     {
         resetValue();
     }

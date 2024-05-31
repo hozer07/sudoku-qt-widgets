@@ -78,6 +78,7 @@ void MainWindow::createMenuButtons(void)
     connect(eraseButton, &QPushButton::pressed, this, &MainWindow::eraseHandler);
     connect(newGameButton, &QPushButton::pressed, this, &MainWindow::startNewGame);
     connect(hintButton, &QPushButton::pressed, this, &MainWindow::giveHint);
+    connect(undoButton, &QPushButton::pressed, this, &MainWindow::undoHandler);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }
@@ -118,9 +119,9 @@ void MainWindow::keepCellFocus(coordinateType cellCoordinate)
     box->setFocus(Qt::MouseFocusReason);
 }
 
-void MainWindow::takeNoteHandler(void)
+void MainWindow::takeNoteHandler(bool checked)
 {
-    m_takingNote ^= 1;
+    m_takingNote = checked;
     keepCellFocus(currentlyFocusedCell);
 }
 
@@ -139,7 +140,7 @@ void MainWindow::addCellToHighlight(uint8_t value, Box * box)
 void MainWindow::eraseHandler(void)
 {
     auto box = getBox(currentlyFocusedCell);
-    box->erase();
+    box->erase(false);
     keepCellFocus(currentlyFocusedCell);
 }
 
@@ -204,21 +205,21 @@ void MainWindow::setValuesOnPuzzle(void)
         return (c >= '0' && c <= '9');
     });
 
+    getBox(currentlyFocusedCell)->erase(false);
     for (size_t i = 0; i < 81; i++)
     {
         auto row = i / 9;
         auto column = i % 9;
         auto box = getBox({row, column});
-        box->mousePressEvent({});
-        box->erase();
+        box->erase(true);
         box->setBoxTrueValue(answers[i] - '0');
         if('0' != puzzleValues[i])
         {
-            box->setBoxValue(puzzleValues[i] - '0');
+            box->setBoxValue(puzzleValues[i] - '0', true, false);
         }
     }
-    getBox({3, 3})->mousePressEvent({});
-    keepCellFocus({3, 3});
+    getBox({4, 4})->mousePressEvent({});
+    keepCellFocus({4, 4});
 }
 
 void MainWindow::generateNewPuzzle(void)
@@ -234,6 +235,7 @@ void MainWindow::generateNewPuzzle(void)
     QStringList arguments{};
     arguments << scriptPath << difficulties[m_difficulty_index];
 
+    logsToUndo.clear();
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
     puzzleGeneratorProcess->start(command, arguments);
@@ -246,6 +248,11 @@ void MainWindow::generateNewPuzzle(void)
     movie->start();
 }
 
+void MainWindow::logEvent(LogElement logElement)
+{
+    logsToUndo.push(std::move(logElement));
+}
+
 void MainWindow::giveHint(void)
 {
     auto focusedBox = getBox(currentlyFocusedCell);
@@ -253,6 +260,57 @@ void MainWindow::giveHint(void)
     const auto currentValue = focusedBox->getCurrentBoxValue();
     if( trueValue != currentValue )
     {
-        focusedBox->setBoxValue(trueValue);
+        auto oldValue = focusedBox->getCurrentBoxValue();
+        focusedBox->setBoxValue(trueValue, false, false);
+        logEvent(ChangeValueLog{focusedBox->getCoordinates(), oldValue, focusedBox->getNotes()});
     }
+}
+
+struct UndoProcessor{
+
+    explicit UndoProcessor(MainWindow * mainWindow) :
+        mainWindow(mainWindow)
+    {}
+
+    void operator()(ChangeValueLog logElement){
+
+        auto prevBox = mainWindow->getBox(logElement.m_coordinate);
+
+        if( auto notes = logElement.m_notesTakenBeforeAction; notes.any())
+        {
+
+            for(auto note = 0; note < 9; note++)
+            {
+                if( auto bit = notes.test(note); true == bit )
+                {
+                    prevBox->setBoxValue(note + 1, false, true);
+                }
+            }
+        }
+
+        else{
+            auto prevValue = logElement.m_prevValue;
+            prevBox->setBoxValue(prevValue, false, false);
+        }
+        prevBox->mousePressEvent({});
+    }
+
+    void operator()(TakeNoteLog logElement){
+        auto prevBox = mainWindow->getBox(logElement.m_coordinate);
+        prevBox->setBoxValue(logElement.m_NoteValue, false, true);
+        prevBox->mousePressEvent({});
+    }
+
+    MainWindow * mainWindow;
+};
+
+
+void MainWindow::undoHandler(void)
+{
+    if(false == logsToUndo.empty())
+    {
+        auto lastAction = logsToUndo.pop();
+        std::visit(UndoProcessor{this}, lastAction);
+    }
+    keepCellFocus(currentlyFocusedCell);
 }
