@@ -15,6 +15,8 @@ class QGridLayout;
 class QVBoxLayout;
 class QGroupBox;
 class QPushButton;
+class QLabel;
+class QTimer;
 
 class MainWindow : public QMainWindow
 {
@@ -48,13 +50,14 @@ private:
     QPushButton *undoButton;
     QPushButton *eraseButton;
     QPushButton *takeNoteButton;
+    QLabel *timerDisplay;
+    QTimer *timer;
 
+    uint64_t timeElapsed{};
     QList<QList<Box*>> boxes;
     coordinateType currentlyFocusedCell{};
     bool m_takingNote{false};
 
-    void createBoxesGrid(void);
-    void createMenuButtons(void);
     uint8_t focusedValue{};
     QVector<QSet<Box*>> boxesOfSameValue;
     int m_difficulty_index{};
@@ -62,6 +65,8 @@ private:
     QProcess* puzzleGenerator;
     QGridLayout* newGameLayout;
     QStack<LogElement> logsToUndo;
+    void createBoxesGrid(void);
+    void createMenuButtons(void);
     friend class UndoProcessor;
 
 
@@ -73,5 +78,6 @@ private slots:
     void setValuesOnPuzzle(void);
     void giveHint(void);
     void undoHandler(void);
+    void updateTimer(void);
 };
 #endif // MAINWINDOW_H

@@ -12,6 +12,7 @@
 #include <QLayout>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -59,7 +60,16 @@ void MainWindow::createMenuButtons(void)
     undoButton = new QPushButton("Undo");
     eraseButton = new QPushButton("Erase");
     takeNoteButton = new QPushButton("Note");
+    timer = new QTimer(this);
+    timerDisplay = new QLabel("00:00");
 
+    timerDisplay->setAlignment(Qt::AlignCenter);
+    QFont timerFont;
+    timerFont.setPointSize(25);
+    timerDisplay->setFont(timerFont);
+
+
+    menuButtonsLayout->addWidget(timerDisplay);
     menuButtonsLayout->addWidget(newGameButton);
     menuButtonsLayout->addWidget(hintButton);
     menuButtonsLayout->addWidget(undoButton);
@@ -79,6 +89,7 @@ void MainWindow::createMenuButtons(void)
     connect(newGameButton, &QPushButton::pressed, this, &MainWindow::startNewGame);
     connect(hintButton, &QPushButton::pressed, this, &MainWindow::giveHint);
     connect(undoButton, &QPushButton::pressed, this, &MainWindow::undoHandler);
+    connect(timer, &QTimer::timeout, this, &MainWindow::updateTimer);
 
     menuButtonsGroup->setLayout(menuButtonsLayout);
 }
@@ -220,6 +231,7 @@ void MainWindow::setValuesOnPuzzle(void)
     }
     getBox({4, 4})->mousePressEvent({});
     keepCellFocus({4, 4});
+    timer->start(1000);
 }
 
 void MainWindow::generateNewPuzzle(void)
@@ -235,6 +247,7 @@ void MainWindow::generateNewPuzzle(void)
     QStringList arguments{};
     arguments << scriptPath << difficulties[m_difficulty_index];
 
+    timeElapsed = 0;
     logsToUndo.clear();
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
@@ -313,4 +326,12 @@ void MainWindow::undoHandler(void)
         std::visit(UndoProcessor{this}, lastAction);
     }
     keepCellFocus(currentlyFocusedCell);
+}
+
+void MainWindow::updateTimer(void)
+{
+    timeElapsed++;
+    int minutes = timeElapsed / 60;
+    int seconds = timeElapsed % 60;
+    timerDisplay->setText(QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0')));
 }
