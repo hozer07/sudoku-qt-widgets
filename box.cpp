@@ -73,7 +73,8 @@ void Box::setBoxValue(uint8_t keyValue, bool isNewGame, bool is_taking_note)
     if(false == is_taking_note)
     {
         this->setCurrentIndex(static_cast<int>(widgetTypes::CellType));
-        cell->setValue(keyValue, false);
+        bool result = cell->setValue(keyValue, false);
+        getMainWindow()->setCellResult(getCoordinates(), result);
         cleanNote();
         if(0 != keyValue)
         {

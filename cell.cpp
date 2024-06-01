@@ -48,11 +48,14 @@ Cell::Cell(uint8_t row, uint8_t column, bool isNote) :
 }
 
 
-void Cell::setValue(uint8_t keyValue, bool isNote)
+bool Cell::setValue(uint8_t keyValue, bool isNote)
 {
+    bool correctOrIncorrect{};
+
     if(0 == keyValue || (hasValue() && keyValue == getValue()))
     {
         resetValue();
+        correctOrIncorrect = false;
     }
     else{
         m_cellMarked = true;
@@ -69,13 +72,16 @@ void Cell::setValue(uint8_t keyValue, bool isNote)
         if( auto trueValue = getTrueValue(); trueValue != keyValue && false == isNote)
         {
             style.replace(regex, "color : red;");
+            correctOrIncorrect = false;
         }
         else
         {
             style.replace(regex, "color : black;");
+            correctOrIncorrect = true;
         }
         setStyleSheet(style);
     }
+    return correctOrIncorrect;
 }
 
 void Cell::resetValue(void)

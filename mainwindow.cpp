@@ -13,6 +13,7 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QTimer>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -96,7 +97,7 @@ void MainWindow::createMenuButtons(void)
 
 MainWindow::~MainWindow() {}
 
-void highlightOrClean( QList<QList<Box*>> cell_grid, std::pair<uint8_t, uint8_t> coordinates, std::function<void(Box*)> func, MainWindow const * mainWindow, uint8_t cellValue)
+void highlightOrClean( QList<QList<Box*>> cell_grid, MainWindow::coordinateType coordinates, std::function<void(Box*)> func, MainWindow const * mainWindow, uint8_t cellValue)
 {
     auto row_index = coordinates.first;
     auto column_index = coordinates.second;
@@ -121,6 +122,11 @@ void MainWindow::cleanAndHighlightBoxes(std::pair<uint8_t, uint8_t> newFocusCell
     highlightOrClean(boxes, currentlyFocusedCell, &Box::cleanBox, this, previousValue);
     highlightOrClean(boxes, newFocusCell, &Box::highlightBox, this, getBox(newFocusCell)->getCurrentBoxValue());
     currentlyFocusedCell = newFocusCell;
+    if(isPuzzleComplete())
+    {
+        finishGame();
+        correctOrIncorrectBoxes = {};
+    }
 }
 
 void MainWindow::keepCellFocus(coordinateType cellCoordinate)
@@ -249,6 +255,7 @@ void MainWindow::generateNewPuzzle(void)
 
     timeElapsed = 0;
     logsToUndo.clear();
+    correctOrIncorrectBoxes = {};
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::setValuesOnPuzzle);
     connect(puzzleGeneratorProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), difficultySetting, &QDialog::close);
     puzzleGeneratorProcess->start(command, arguments);
@@ -277,6 +284,7 @@ void MainWindow::giveHint(void)
         focusedBox->setBoxValue(trueValue, false, false);
         logEvent(ChangeValueLog{focusedBox->getCoordinates(), oldValue, focusedBox->getNotes()});
     }
+    keepCellFocus(currentlyFocusedCell);
 }
 
 struct UndoProcessor{
@@ -334,4 +342,28 @@ void MainWindow::updateTimer(void)
     int minutes = timeElapsed / 60;
     int seconds = timeElapsed % 60;
     timerDisplay->setText(QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0')));
+}
+
+void MainWindow::setCellResult(coordinateType coordinates, bool result)
+{
+    auto row = coordinates.first;
+    auto column = coordinates.second;
+    correctOrIncorrectBoxes.set(9 * row + column, result);
+}
+
+void MainWindow::finishGame(void)
+{
+    int minutes = timeElapsed / 60;
+    int seconds = timeElapsed % 60;
+    timer->stop();
+    if(0 == minutes)
+    {
+        QString message = QString("You solved puzzle in %1 seconds!").arg(seconds, 2, 10, QChar('0'));
+        QMessageBox::information(this, "Congratulations!", message);
+    }
+    else
+    {
+        QString message = QString("You solved puzzle in %1 minutes and %2 seconds!").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+        QMessageBox::information(this, "Congratulations!", message);
+    }
 }

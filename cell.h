@@ -11,7 +11,7 @@ class Cell : public QLabel
 public:
     using coordinateType = std::pair<uint8_t,uint8_t>;
     explicit Cell(uint8_t row, uint8_t column, bool isNote);
-    void setValue(uint8_t value, bool isNote);
+    bool setValue(uint8_t value, bool isNote);
     void setTrueValue(uint8_t value){m_trueValue = value;}
     void resetValue(void);
     uint8_t getValue(void) const{return m_cellValue;}

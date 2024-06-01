@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QStack>
 #include "logelement.h"
+#include <bitset>
 
 class Box;
 class QDialog;
@@ -34,6 +35,7 @@ public:
     QSet<Box*> getCellsOfSameValue(uint8_t value) const{return boxesOfSameValue[value - 1];}
     void keepCellFocus(coordinateType cellCoordinate);
     void logEvent(LogElement);
+    void setCellResult(coordinateType, bool);
 
 public slots:
     void cleanAndHighlightBoxes(coordinateType, uint8_t previousValue);
@@ -65,8 +67,12 @@ private:
     QProcess* puzzleGenerator;
     QGridLayout* newGameLayout;
     QStack<LogElement> logsToUndo;
+    bool isPuzzleComplete(void) const {return correctOrIncorrectBoxes.all();}
     void createBoxesGrid(void);
     void createMenuButtons(void);
+    void finishGame(void);
+    std::bitset<81> correctOrIncorrectBoxes{};
+
     friend class UndoProcessor;
 
 
